@@ -35,7 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 
 
-public class BleActivity extends AppCompatActivity implements View.OnClickListener, BLEControllerCallback {
+public class BleActivity extends AppCompatActivity implements View.OnClickListener, BLEControllerCallback,MtuCallback {
     String TAG = "BleActivity";
     Toolbar toolbar;
     ImageView backarrow;
@@ -43,6 +43,11 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
     private TextView receiveText;
     static Activity activity;
     LinearLayout lineScan, line_operation;
+
+    @Override
+    public void mtuSize(int mtu) {
+
+    }
 
     private enum Connected {False, Pending, True}
 
@@ -100,7 +105,7 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
         btnFail = findViewById(R.id.btnFail);
         btnPending = findViewById(R.id.btnPending);
 
-        bleController = new BLEController();
+        bleController = new BLEController(this);
         bleController.SetContext(BleActivity.this);
         bleController.Initialize();
         btnScan = findViewById(R.id.btnScan);
@@ -122,6 +127,10 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
         backarrow.setOnClickListener(this);
         btnWelcome.setOnClickListener(this);
         btnScan.setOnClickListener(this);
+        btnGenerateQr.setOnClickListener(this);
+        btnFail.setOnClickListener(this);
+        btnPending.setOnClickListener(this);
+        btnSuccess.setOnClickListener(this);
 
     }
 
@@ -277,22 +286,6 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
 
         }
 
-//        if (view == btnGenerateQr) {
-
-//            String orderid = Apputils.getCurrnetDateTime2();
-//            String upistring = Apputils.getUpiString(PrefManager.getPref(activity, PrefManager.PREF_UPIID).trim(), PrefManager.getPref(activity, PrefManager.PREF_PAYEENAME).trim().replace(" ", "%20"), etAmount.getText().toString(), orderid);
-//            if (TextUtils.isEmpty(upistring)) {
-//                Toast.makeText(activity, "Invalid UPI Data", Toast.LENGTH_SHORT).show();
-//            } else {
-//                String msg = Constants.QRCODE_JSON
-//                        .replace("<amount>", etAmount.getText().toString())
-//                        .replace("<upi>", PrefManager.getPref(activity, PrefManager.PREF_UPIID)
-//                                .replace("<date>", Apputils.getCurrnetDate())
-//                        );
-//                Log.e(TAG, "msg  " + msg);
-//                displayTxnQr();
-//            }
-//        }
         if (view == btnWelcome) {
 
             if (connected == Connected.True) {
