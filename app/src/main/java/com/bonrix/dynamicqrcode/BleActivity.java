@@ -2,9 +2,11 @@ package com.bonrix.dynamicqrcode;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -12,11 +14,19 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.StrictMode;
 import android.provider.Settings;
+import android.text.TextUtils;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -40,13 +50,13 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
     Toolbar toolbar;
     ImageView backarrow;
     private Button btnScan, btn_start, btnWelcome, btnGenerateQr, btnSuccess, btnFail, btnPending;
-    private TextView receiveText;
+    private TextView receiveText,tv_mtu_size;
     static Activity activity;
     LinearLayout lineScan, line_operation;
 
     @Override
     public void mtuSize(int mtu) {
-
+        tv_mtu_size.setText("MTU Size : "+mtu);
     }
 
     private enum Connected {False, Pending, True}
@@ -290,7 +300,7 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
 
             if (connected == Connected.True) {
                 try {
-                    bleController.SendData(Constants.WELCOME_SCREEN);
+                    bleController.sendDataChunkWise(Constants.WELCOME_SCREEN);
                 } catch (Exception e) {
                     Log.e("TAG", "Exception   " + e);
                 }
@@ -301,7 +311,7 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
 
             if (connected == Connected.True) {
                 try {
-                    bleController.SendData(Constants.QR_SCREEN);
+                    bleController.sendDataChunkWise(Constants.QR_SCREEN);
                 } catch (Exception e) {
                     Log.e("TAG", "Exception   " + e);
                 }
@@ -312,7 +322,7 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
 
             if (connected == Connected.True) {
                 try {
-                    bleController.SendData(Constants.SUCCESS_SCREEN
+                    bleController.sendDataChunkWise(Constants.SUCCESS_SCREEN
                             .replace("<bankreff>", "31231231")
                             .replace("<orderid>", "ord231231")
                             .replace("<date>", "02-08-2024"));
@@ -326,7 +336,7 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
 
             if (connected == Connected.True) {
                 try {
-                    bleController.SendData(Constants.FAIL_SCREEN
+                    bleController.sendDataChunkWise(Constants.FAIL_SCREEN
                             .replace("<bankreff>", "31231231")
                             .replace("<orderid>", "ord231231")
                             .replace("<date>", "02-08-2024"));
@@ -340,7 +350,7 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
 
             if (connected == Connected.True) {
                 try {
-                    bleController.SendData(Constants.CANCEL_SCREEN
+                    bleController.sendDataChunkWise(Constants.CANCEL_SCREEN
                             .replace("<bankreff>", "31231231")
                             .replace("<orderid>", "ord231231")
                             .replace("<date>", "02-08-2024"));
@@ -352,6 +362,69 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
         }
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_bt_ble, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        switch (id) {
+            case R.id.setting:
+                dialogImageSetting();
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+    private void dialogImageSetting() {
+        Dialog viewDialog112 = new Dialog(this);
+        viewDialog112.getWindow().setFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND, WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+        viewDialog112.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        LayoutInflater lin1 = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View dialogView112 = lin1.inflate(R.layout.dialog_interval_setting, null);
+        viewDialog112.setContentView(dialogView112);
+        viewDialog112.setCancelable(false);
+        viewDialog112.getWindow().setLayout(ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        viewDialog112.show();
+        ImageView iv_close = dialogView112.findViewById(R.id.iv_close);
+        Button btn_submit = dialogView112.findViewById(R.id.btn_submit);
+        EditText et_time_interval = dialogView112.findViewById(R.id.et_time_interval);
+        EditText et_packet_interval = dialogView112.findViewById(R.id.et_packet_interval);
+        EditText et_packet_Size = dialogView112.findViewById(R.id.et_packet_Size);
+        try {
+            et_time_interval.setText(PrefManager.getIntPref(this, PrefManager.PREF_FIRST_PACKET_INTERVAL).toString());
+            et_packet_interval.setText(PrefManager.getIntPref(this, PrefManager.PREF_PACKET_INTERVAL).toString());
+            et_packet_Size.setText(PrefManager.getIntPref(this, PrefManager.PREF_PACKET_SIZE).toString());
+        } catch (Exception e) {
+        }
+        iv_close.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                viewDialog112.dismiss();
+            }
+        });
+        btn_submit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                viewDialog112.dismiss();
+                if (TextUtils.isEmpty(et_time_interval.getText())) {
+                    Toast.makeText(BleActivity.this, "Enter Valid Time Interval", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (TextUtils.isEmpty(et_packet_interval.getText())) {
+                    Toast.makeText(BleActivity.this, "Enter Valid Packet Time Interval", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                PrefManager.saveIntPref(BleActivity.this, PrefManager.PREF_FIRST_PACKET_INTERVAL, Integer.parseInt(et_time_interval.getText().toString()));
+                PrefManager.saveIntPref(BleActivity.this, PrefManager.PREF_PACKET_INTERVAL, Integer.parseInt(et_packet_interval.getText().toString()));
+                PrefManager.saveIntPref(BleActivity.this, PrefManager.PREF_PACKET_SIZE, Integer.parseInt(et_packet_Size.getText().toString()));
+            }
+        });
+    }
 
 //    private void displayTxnQr() {
 //        String orderid = Apputils.getCurrnetDateTime2();

@@ -14,10 +14,11 @@ import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 
-import com.bonrix.dynamicqrcode.BLEControllerCallback;
-import com.bonrix.dynamicqrcode.MtuCallback;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.UUID;
 
 /**
@@ -34,6 +35,7 @@ public class BLEController implements BluetoothAdapter.LeScanCallback {
     private static final UUID NOTIFICATION_CHARACTERSTIC = UUID.fromString("98765432-1234-1234-1234-123456789abc");
     private static final UUID CONFIG_DESCRIPTOR = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
     private int REQUESTED_MTU = 512;
+    private int currentChunkIndex = 0;
 
     private BluetoothAdapter mBluetoothAdapter;
 
@@ -46,18 +48,24 @@ public class BLEController implements BluetoothAdapter.LeScanCallback {
     boolean IsConnectedM = false;
     String ConnectedDeviceNameM = "";
     String ConnectedDeviceAddress = "";
+
     public String getConnectedDeviceName() {
         return ConnectedDeviceNameM;
     }
+
     public String getConnectedDeviceAddress() {
         return ConnectedDeviceAddress;
     }
+
     private boolean isMtuSet = false;
     private MtuCallback mtuCallback;
+    private Queue<byte[]> chunkQueue = new LinkedList<>();
+    private boolean isWriting = false;
 
     public void SetCallBack(BLEControllerCallback BleControllerCallbackP) {
         BleControllerCallbackM = BleControllerCallbackP;
     }
+
     public BLEController(MtuCallback mtuCallback) {
         this.mtuCallback = mtuCallback;
     }
@@ -115,7 +123,7 @@ public class BLEController implements BluetoothAdapter.LeScanCallback {
         }
 
         if (ShowUiP) {
-            BleControllerCallbackM.ShowProgressMessage("Trying to Connect " + BluetoothDeviceL.getName()+"-"+BluetoothDeviceL.getAddress());
+            BleControllerCallbackM.ShowProgressMessage("Trying to Connect " + BluetoothDeviceL.getName() + "-" + BluetoothDeviceL.getAddress());
         }
         ConnectedGattM = BluetoothDeviceL.connectGatt(ParentContextM, true, GattCallbackM);
         IsConnectedM = true;
@@ -147,85 +155,71 @@ public class BLEController implements BluetoothAdapter.LeScanCallback {
         BleControllerCallbackM.NotificationReceived(DataP);
     }
 
-    public void SendData1(String data) {
-        Log.e("TAG", "Command: " + data);
+    public void sendDataChunkWise(String dataP) {
+        Log.e("TAG", "SendDataChunkWise  " + dataP);
 
-        if (!IsConnectedM || ConnectedGattM == null) {
-            return;
-        }
+        byte[] imageBytes = dataP.getBytes();
+        Log.e("TAG", "packet size  " + imageBytes.length);
 
-        BluetoothGattCharacteristic writeCharacteristic = ConnectedGattM
-                .getService(DATA_SERVICE)
-                .getCharacteristic(WRITE_CHARACTERSTIC);
+        chunkQueue.clear();
+        currentChunkIndex = 0;
 
-        if (writeCharacteristic == null) {
-            Log.e("TAG", "WriteCharacteristic is null");
-            return;
-        }
-
-        byte[] fullData = data.getBytes();
-
-        // Use MTU - 3 (3 bytes used for ATT protocol overhead)
-        int chunkSize = REQUESTED_MTU > 23 ? REQUESTED_MTU - 3 : 20;
-        int offset = 0;
-
-        while (offset < fullData.length) {
-            int length = Math.min(chunkSize, fullData.length - offset);
-            byte[] chunk = new byte[length];
-            System.arraycopy(fullData, offset, chunk, 0, length);
-
-            writeCharacteristic.setValue(chunk);
-            boolean success = ConnectedGattM.writeCharacteristic(writeCharacteristic);
-
-            Log.e("TAG", "Sent chunk: " + new String(chunk));
-
-            if (!success) {
-                Log.e("TAG", "writeCharacteristic failed at offset: " + offset);
-                return;
-            }
-
-            // You should ideally wait for onCharacteristicWrite before sending next chunk
-            try {
-                Thread.sleep(50); // simple workaround
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            offset += length;
-        }
-        Log.e("TAG", "All data sent.");
-    }
-
-
-    public void SendData(String DataP) {
-        Log.e("TAG", "Command "+DataP);
         if (!IsConnectedM) {
             return;
         }
         if (ConnectedGattM == null) {
             return;
         }
-        BluetoothGattCharacteristic WriteCharactersticL = ConnectedGattM.getService(DATA_SERVICE).getCharacteristic(WRITE_CHARACTERSTIC);
 
-        if (WriteCharactersticL == null) {
-            Log.e("TAG", "WriteCharactersticL null");
-        } else {
-            Log.e("TAG", "WriteCharactersticL  not null");
-
+        if (!isMtuSet) {
+            if (PrefManager.getIntPref(ParentContextM, PrefManager.PREF_PACKET_SIZE) == 0) {
+                REQUESTED_MTU = 20;
+            } else {
+                REQUESTED_MTU = PrefManager.getIntPref(ParentContextM, PrefManager.PREF_PACKET_SIZE);
+            }
         }
+        try {
+            Log.e("TAG", "REQUESTED_MTU   " + REQUESTED_MTU);
+            int totalChunks = (int) Math.ceil((double) imageBytes.length / REQUESTED_MTU);
+            Log.e("TAG", "totalChunks   " + totalChunks);
+            for (int i = 0; i < totalChunks; i++) {
+                int startIndex = i * REQUESTED_MTU;
+                int endIndex = Math.min(startIndex + REQUESTED_MTU, imageBytes.length);
+                byte[] chunk = Arrays.copyOfRange(imageBytes, startIndex, endIndex);
+                chunkQueue.add(chunk);
+            }
+            Log.e("TAG", " chunkQueue " + chunkQueue.size());
+            // Start processing chunks
+            sendNextChunk();
+        } catch (Exception e) {
+            Log.e("TAG", "Exception " + e);
+        }
+    }
 
-        if (WriteCharactersticL == null) {
+    private void sendNextChunk() {
+        if (chunkQueue.isEmpty() || isWriting) {
             return;
         }
-        WriteCharactersticL.setValue(DataP.getBytes());
-        ConnectedGattM.writeCharacteristic(WriteCharactersticL);
-        Log.e("TAG", "data sent");
+
+        byte[] chunk = chunkQueue.poll();
+        if (chunk == null) {
+            return;
+        }
+        Log.e("TAG", "Sending chunk index: " + currentChunkIndex);
+        isWriting = true;
+        BluetoothGattCharacteristic writeCharacteristic = ConnectedGattM.getService(DATA_SERVICE).getCharacteristic(WRITE_CHARACTERSTIC);
+        writeCharacteristic.setValue(chunk);
+        boolean writeResult = ConnectedGattM.writeCharacteristic(writeCharacteristic);
+        Log.e("TAG", "writeCharacteristic result: " + writeResult);
+        currentChunkIndex++;
+
     }
 
     private BluetoothGattCallback GattCallbackM = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt BlueToothGattP, int StatusP, int newState) {
-            Log.e("TAG", "onConnectionStateChange "+StatusP);
-            Log.e("TAG", "onConnectionStateChange "+newState);
+            Log.e("TAG", "onConnectionStateChange " + StatusP);
+            Log.e("TAG", "onConnectionStateChange " + newState);
             if (StatusP == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_CONNECTED) {
                 Log.e("TAG", "onConnectionStateChange 1111");
 
@@ -238,8 +232,7 @@ public class BLEController implements BluetoothAdapter.LeScanCallback {
                 IsConnectedM = false;
                 BlueToothGattP.close();
                 BleControllerCallbackM.DeviceIsDisconnected();
-            }
-            else if (StatusP != BluetoothGatt.GATT_SUCCESS) {
+            } else if (StatusP != BluetoothGatt.GATT_SUCCESS) {
                 Log.e("TAG", "onConnectionStateChange 3333");
 
                 ConnectedGattM = null;
@@ -259,15 +252,16 @@ public class BLEController implements BluetoothAdapter.LeScanCallback {
                 BleControllerCallbackM.ShowProgressMessage("Errors Occurred while discovering services.");
             }
         }
+
         @Override
         public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
             super.onMtuChanged(gatt, mtu, status);
             Log.e("TAG", "MTU : " + mtu);
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 isMtuSet = true;
-                if (mtu==517){
+                if (mtu == 517) {
                     REQUESTED_MTU = mtu - 5;
-                }else {
+                } else {
                     REQUESTED_MTU = mtu - 3;
                 }
                 Log.e("TAG", "MTU size changed to: " + mtu);
@@ -286,6 +280,7 @@ public class BLEController implements BluetoothAdapter.LeScanCallback {
                 Log.e("TAG", "Failed to change MTU size");
             }
         }
+
         private void EnableNotifications(BluetoothGatt bluetoothGatt) {
             BluetoothGattCharacteristic CharacteristicL = bluetoothGatt.getService(DATA_SERVICE).getCharacteristic(NOTIFICATION_CHARACTERSTIC);
             if (CharacteristicL == null) {
@@ -316,6 +311,17 @@ public class BLEController implements BluetoothAdapter.LeScanCallback {
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             Log.e("TAG", "onCharacteristicWrite" + characteristic.getUuid());
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.e("TAG", "Characteristic write successful  " + characteristic.getValue().length);
+//                Log.e("TAG", "PREF_IS_INTERVAL  " + PrefManager.getBoolPref(ParentContextM, PrefManager.PREF_IS_INTERVAL));
+//                Log.e("TAG", "isImageSending  " + isImageSending);
+
+                if (!PrefManager.getBoolPref(ParentContextM, PrefManager.PREF_IS_INTERVAL)) {
+                    isWriting = false;
+                    sendNextChunk();
+                }
+
+            }
         }
 
         @Override

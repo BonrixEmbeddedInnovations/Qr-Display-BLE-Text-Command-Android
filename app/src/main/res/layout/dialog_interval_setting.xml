@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    android:orientation="vertical"
+    android:padding="@dimen/_10sdp">
+
+    <ImageView
+        android:id="@+id/iv_close"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="right"
+        android:layout_margin="@dimen/_10sdp"
+        android:src="@drawable/ic_baseline_close_24"
+        app:tint="@color/colorPrimary" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:fontFamily="@font/open_sans_bold"
+        android:gravity="center"
+        android:text="Packet Settings"
+        android:textColor="@color/colorAccent"
+        android:textSize="@dimen/_20sdp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/_1sdp"
+        android:layout_marginTop="@dimen/_10sdp"
+        android:background="@color/colorAccent" />
+
+    <TextView
+        android:layout_marginTop="@dimen/_10sdp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="left"
+        android:fontFamily="@font/open_sans_bold"
+        android:gravity="center"
+        android:text="Send Interval"
+        android:textColor="@color/dark_gray"
+        />
+
+    <EditText
+        android:id="@+id/et_time_interval"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/_5sdp"
+        android:fontFamily="@font/open_sans"
+        android:hint="Send Interval"
+        android:inputType="number"
+        android:background="@drawable/edit_text_border"
+        android:padding="@dimen/_10sdp"
+        android:textColor="@color/dark_gray"
+        android:textColorHint="@color/dark_gray"
+        android:textSize="@dimen/_18ssp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="left"
+        android:layout_marginTop="@dimen/_10sdp"
+        android:fontFamily="@font/open_sans_bold"
+        android:gravity="center"
+        android:text="Packet Interval"
+        android:textColor="@color/dark_gray" />
+
+    <EditText
+        android:id="@+id/et_packet_interval"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/_5sdp"
+        android:background="@drawable/edit_text_border"
+        android:fontFamily="@font/open_sans"
+        android:hint="Packet Interval"
+        android:inputType="number"
+        android:padding="@dimen/_10sdp"
+        android:textColor="@color/dark_gray"
+        android:textColorHint="@color/dark_gray"
+        android:textSize="@dimen/_18ssp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="left"
+        android:layout_marginTop="@dimen/_10sdp"
+        android:fontFamily="@font/open_sans_bold"
+        android:gravity="center"
+        android:text="Packet Size"
+        android:textColor="@color/dark_gray" />
+
+    <EditText
+        android:id="@+id/et_packet_Size"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/_5sdp"
+        android:background="@drawable/edit_text_border"
+        android:fontFamily="@font/open_sans"
+        android:text="20"
+        android:inputType="number"
+        android:padding="@dimen/_10sdp"
+        android:textColor="@color/dark_gray"
+        android:textColorHint="@color/dark_gray"
+        android:textSize="@dimen/_18ssp" />
+
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btn_submit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="@dimen/_5sdp"
+        android:layout_marginTop="@dimen/_20sdp"
+        android:textColor="@color/white"
+
+        android:layout_marginRight="@dimen/_5sdp"
+        android:background="@color/colorPrimary"
+        android:fontFamily="@font/open_sans_bold"
+        android:text="Submit"
+        android:textStyle="bold" />
+
+
+</LinearLayout>

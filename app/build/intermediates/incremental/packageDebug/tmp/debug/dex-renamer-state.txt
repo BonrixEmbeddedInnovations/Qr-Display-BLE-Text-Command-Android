@@ -1,4 +1,4 @@
-#Mon Aug 05 11:33:49 IST 2024
+#Mon May 26 16:22:47 IST 2025
 base.0=/Users/bhargavhada/Bhargav Workspace/Bonrix Work/Git Source/Text Command Code/Qr_display_ble_text_command/app/build/intermediates/dex/debug/mergeExtDexDebug/classes.dex
 base.1=/Users/bhargavhada/Bhargav Workspace/Bonrix Work/Git Source/Text Command Code/Qr_display_ble_text_command/app/build/intermediates/dex/debug/mergeProjectDexDebug/0/classes.dex
 base.2=/Users/bhargavhada/Bhargav Workspace/Bonrix Work/Git Source/Text Command Code/Qr_display_ble_text_command/app/build/intermediates/dex/debug/mergeProjectDexDebug/4/classes.dex

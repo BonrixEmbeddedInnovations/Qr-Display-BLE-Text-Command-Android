@@ -58,6 +58,17 @@
             android:textColor="@color/colorPrimary"
             android:textSize="@dimen/_15sdp" />
 
+        <TextView
+            android:id="@+id/tv_mtu_size"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="@dimen/_10sdp"
+            android:fontFamily="@font/open_sans_bold"
+            android:gravity="center"
+            android:textColor="@color/colorPrimary"
+            android:textSize="@dimen/_15sdp" />
+
         <LinearLayout
             android:id="@+id/lineScan"
             android:layout_width="match_parent"
