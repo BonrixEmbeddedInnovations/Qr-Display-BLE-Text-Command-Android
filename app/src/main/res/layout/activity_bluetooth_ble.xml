@@ -162,6 +162,17 @@
                 android:fontFamily="@font/open_sans_bold"
                 android:text="Pending"
                 android:textColor="@color/white" />
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btnSoundVolume"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/_5sdp"
+                android:layout_marginTop="@dimen/_20sdp"
+                android:layout_marginRight="@dimen/_5sdp"
+                android:background="@color/colorPrimary"
+                android:fontFamily="@font/open_sans_bold"
+                android:text="Sound Volume"
+                android:textColor="@color/white" />
 
         </LinearLayout>
 

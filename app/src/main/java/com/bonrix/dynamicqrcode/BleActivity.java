@@ -30,6 +30,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -49,7 +50,7 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
     String TAG = "BleActivity";
     Toolbar toolbar;
     ImageView backarrow;
-    private Button btnScan, btn_start, btnWelcome, btnGenerateQr, btnSuccess, btnFail, btnPending;
+    private Button btnScan, btn_start, btnWelcome, btnGenerateQr, btnSuccess, btnFail, btnPending,btnSoundVolume;
     private TextView receiveText,tv_mtu_size;
     static Activity activity;
     LinearLayout lineScan, line_operation;
@@ -106,6 +107,7 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
         lineScan = findViewById(R.id.lineScan);
 
         receiveText = findViewById(R.id.tv_bt_status);
+        tv_mtu_size = findViewById(R.id.tv_mtu_size);
         btnWelcome = findViewById(R.id.btnWelcome);
         btnScan = findViewById(R.id.btnScan);
 
@@ -114,6 +116,7 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
         btnSuccess = findViewById(R.id.btnSuccess);
         btnFail = findViewById(R.id.btnFail);
         btnPending = findViewById(R.id.btnPending);
+        btnSoundVolume = findViewById(R.id.btnSoundVolume);
 
         bleController = new BLEController(this);
         bleController.SetContext(BleActivity.this);
@@ -141,6 +144,7 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
         btnFail.setOnClickListener(this);
         btnPending.setOnClickListener(this);
         btnSuccess.setOnClickListener(this);
+        btnSoundVolume.setOnClickListener(this);
 
     }
 
@@ -257,16 +261,87 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
 
     @Override
     public void NotificationReceived(byte[] NotificationDataP) {
+        String str = new String(NotificationDataP).trim();
+        Log.e("TAG", "=====str======" + str);
         connected = Connected.True;
-        if (bScaleControlActivityIsLaunchedM) {
-            return;
-        }
-        progressDialogM.hide();
         bScaleControlActivityIsLaunchedM = true;
-//        Intent intent = new Intent(this, BleActivity.class);
-//        startActivity(intent);
+        if (str.contains("Volume set")) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(BleActivity.this, str, Toast.LENGTH_SHORT).show();
+                }
+            });
+        } else if (str.contains("Current Volume")) {
+
+            Log.e("TAG", "in current vol");
+            try {
+                String[] parts = str.split(":");
+                if (parts.length > 1) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            dialogVolumeSetting(parts[1].trim());
+                        }
+                    });
+
+                }
+
+            } catch (Exception e) {
+                Log.e("TAG", "in current vol Exception " + e);
+
+            }
+
+        }
     }
 
+    private void dialogVolumeSetting(String jsonst) {
+        Dialog viewDialog112 = new Dialog(this);
+        viewDialog112.getWindow().setFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND, WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+        viewDialog112.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        LayoutInflater lin1 = (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View dialogView112 = lin1.inflate(R.layout.dialog_sound_volume, null);
+        viewDialog112.setContentView(dialogView112);
+        viewDialog112.setCancelable(true);
+        viewDialog112.getWindow().setLayout(ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        viewDialog112.show();
+        Button btn_save = viewDialog112.findViewById(R.id.btn_save);
+        SeekBar seekBarVolume = viewDialog112.findViewById(R.id.seekBarVolume);
+        TextView tvVolumeLevel = viewDialog112.findViewById(R.id.tvVolumeLevel);
+        seekBarVolume.setProgress(Integer.parseInt(jsonst)); // Represents volume level 1
+        tvVolumeLevel.setText("Volume: " + Integer.parseInt(jsonst));
+        seekBarVolume.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // Map progress to volume level (1 to 21)
+                int volumeLevel = progress + 1;
+                tvVolumeLevel.setText("Volume: " + volumeLevel);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+        });
+
+        btn_save.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                viewDialog112.dismiss();
+                String writeString = "setvolume**" + seekBarVolume.getProgress()+"\n";
+                if (connected == Connected.True) {
+                    try {
+                        bleController.sendDataChunkWise(writeString);
+                    } catch (Exception e) {
+
+                    }
+                }
+            }
+        });
+    }
 
     @Override
     public void onClick(View view) {
@@ -319,7 +394,6 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
 
         }
         if (view == btnSuccess) {
-
             if (connected == Connected.True) {
                 try {
                     bleController.sendDataChunkWise(Constants.SUCCESS_SCREEN
@@ -330,7 +404,6 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
                     Log.e("TAG", "Exception   " + e);
                 }
             }
-
         }
         if (view == btnFail) {
 
@@ -359,6 +432,16 @@ public class BleActivity extends AppCompatActivity implements View.OnClickListen
                 }
             }
 
+        }
+        if (view == btnSoundVolume) {
+            if (connected == Connected.True) {
+                try {
+                    String writeString = "getvolume\n";
+                    bleController.sendDataChunkWise(writeString);
+                } catch (Exception e) {
+
+                }
+            }
         }
     }
 
